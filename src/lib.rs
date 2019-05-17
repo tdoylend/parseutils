@@ -45,7 +45,13 @@ impl<'a> Stream<'a> {
     pub fn current_line(&mut self) -> String {
         let mut buffer = self.current_line.clone();
 
-        buffer.push_str(&self.test_seq(matchers::except(matchers::line_terminator)).unwrap_or("".to_string()));
+        let offset = if self.peek() == Some('\n') && self.first_term {
+            1
+        } else {
+            0
+        };
+
+        buffer.push_str(&self.look_test_seq(matchers::except(matchers::line_terminator),offset).unwrap_or("".to_string()));
     
         buffer
     }
@@ -88,7 +94,13 @@ impl<'a> Stream<'a> {
     pub fn test<T>(&mut self, matcher: T) -> Option<char>
         where T: Fn(char) -> bool
     {
-        let x = self.peek();
+        self.look_test(matcher,0)
+    }
+
+    pub fn look_test<T>(&mut self, matcher: T, start: usize) -> Option<char>
+        where T: Fn(char) -> bool
+    {
+        let x = self.look(start);
         match x {
             Some(c) => {
                 if matcher(c) {
@@ -104,10 +116,16 @@ impl<'a> Stream<'a> {
     pub fn test_seq<T>(&mut self, matcher: T) -> Option<String>
         where T: Fn(char) -> bool
     {
-        let mut s = String::new();
-        s.push(self.test(&matcher)?);
-        let mut i = 1;
+        self.look_test_seq(matcher,0)
+    }
 
+    pub fn look_test_seq<T>(&mut self, matcher: T, start: usize) -> Option<String>
+        where T: Fn(char) -> bool
+    {
+        let mut s = String::new();
+        s.push(self.look_test(&matcher,start)?);
+
+        let mut i = start + 1;
         while self.look(i).is_some() && matcher(self.look(i).unwrap()) {
             s.push(self.look(i).unwrap());
             i += 1;

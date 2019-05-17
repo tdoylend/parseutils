@@ -122,9 +122,23 @@ fn position_test() {
 
 #[test]
 fn current_line_test() {
-    let mut stream = Stream::new("","alpha\r\n\r\nbeta".chars());
+    let mut stream = Stream::new("","alpha\r\nbeta\r\n".chars());
 
     assert_eq!("alpha".to_string(),stream.current_line());
     assert_eq!(Some("alpha".to_string()),stream.munch_seq(matchers::except(matchers::line_terminator)));
     assert_eq!("alpha".to_string(),stream.current_line());
+
+    assert_eq!(Some('\r'),stream.next());
+    assert_eq!("beta".to_string(), stream.current_line());
+    assert_eq!(Some('\n'),stream.next());
+    assert_eq!("beta".to_string(), stream.current_line());
+
+    assert_eq!(Some('b'),stream.next());
+    assert_eq!("beta".to_string(), stream.current_line());
+
+    assert_eq!(Some("eta".to_string()), stream.munch_seq(matchers::except(matchers::line_terminator)));
+    assert_eq!(Some("\r\n".to_string()), stream.munch_seq(matchers::line_terminator));
+
+    assert_eq!("".to_string(), stream.current_line());
+
 }
